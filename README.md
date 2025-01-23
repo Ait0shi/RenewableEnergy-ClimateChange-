@@ -1,4 +1,4 @@
-# Renewable Energy ClimateChange
+# Renewable Energy & Climate Change
 
 About: 
 This R program aims to show the relationship 
