@@ -1,0 +1,600 @@
+---
+title: "Week10_Final_Project"
+author: "Mcouto"
+date: "`r Sys.Date()`"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+
+## Part One
+
+### Introduction
+
+Year after year, we have been hearing about record-breaking temperatures. 
+So far, according to the U.N. World Meteorological Organization, July 2023 is 
+to be the hottest month on record. These temperatures have been seen not just 
+in the U.S., where California, Florida, and Texas residents faced heatwaves
+this summer. It's important to note that climate change does not only cause 
+rising temperatures. Countries like the Philippines, Japan, and India are 
+experiencing heavier-than-ever rainfall and flooding. Wildfires spread in 
+unprecedented areas, causing destruction while ice levels continue to melt in 
+the polar regions.  
+
+The accelerating effect of extreme weather has people looking into 
+changing the global energy landscape to shift towards renewable energy, 
+as scientists name carbon dioxide emissions as the main culprit for worsening 
+climate change. This study aims to evaluate the state of renewable energy 
+in mitigating the effects of climate change.
+
+### Research questions
+1. What kinds of renewable are available?
+2. Where are renewable energy resources implemented?
+3. How does renewable energy affect climate change?
+4. What are the risks associated with renewable energy?
+5. How does renewable energy work?
+
+### How your approach addresses (fully or partially) the problem. 
+
+Scientists have determined that human activities mainly cause the acceleration 
+of climate change, with Carbon Dioxide being one of the most significant 
+pollutants in the atmosphere. I want to see if there is a correlation between 
+implementing renewable energy resources and reducing carbon emissions 
+in areas with them. Using data from various resources, my goal is to visualize
+the trends in the use of renewable energy and compare it to climate change data
+using time period analysis. I plan on using correlation analysis to identify 
+impact, if any, an increase of use in renewable energy in mitigating greenhouse
+emissions. Finally, I would like to see if, by using predictive modeling, I can 
+show how the trajectory of climate change would shift if we continue to change 
+our current energy use to more sustainable options.
+
+### Data (Minimum of 3 Datasets-but no requirement on number of fields or rows) 
+
+1. City Wide Emissions - This dataset is collected in partnership by the Carbon 
+Disclosure Project (CDP), a non profit that tracks data for renewable energy
+and changes within the environment as reported by cities worldwide, and ICLEI - 
+Local Governments for Sustainability, which is an organization that consists of
+different cities coming together to share information and build a more 
+sustainable future. The dataset provided for city-wide emissions are available
+on a yearly basis. I will be connecting to individual datasets from 2015-2019 &
+append them together to create an analysis over the specified time period. 
+
+Total number of Datasets = 5 
+
+### Required Packages 
+1. Dplyr
+2. ggplot2
+3. tidyr
+4. Purrr
+7. Knitr
+8. Rmarkdown
+9. httr
+10.jsonlite
+
+### Plots and Table Needs 
+	 I visualize plots like a scatterplot showing the relationship between 
+	 renewable energy & its effect on climate change. Time series plots to 
+	 see changes over time, a table to show the results of any regression output 
+	 and a correlation matrix between climate indicators 
+	 and types of renewable energy resources. 
+	 
+### Questions for future steps 
+	1. How to avoid bias in regression models?
+	2. How do I narrow down my study's parameters to make the most meaningful 
+	   impact?
+	3. How do I ensure that I don't infer causality with correlation when 
+	    interpreting the result of my study?
+
+## Part Two
+
+### How to import and clean my data
+
+The data sources for this project have an available api. Using R, the data can 
+be loaded with the httr package using the install.packages("httr") and load the 
+package in the project 
+
+```{r}
+library(httr)
+```
+
+Using the GET() function, we can interact with the data without having to 
+download it locally. 
+
+Full City Dataset
+
+```{r}
+CityEmissions2015 <- GET(url = "https://data.cdp.net/resource/yasg-kzny.json")
+str(CityEmissions2015)
+```
+Upon inspection of the data,using the head() function, we see that the data is
+not structured for use quite yet. We know from the API URL that the dataset is 
+in JSON format. We can handle this in two ways: extract the data using the 
+content() function to turn it into text. It also allows us to see and understand
+the several components that makes up the API endpoint
+
+```{r}
+CityEmissions2015 <- content(CityEmissions2015, as = "text")
+```
+
+The cat function allows us to  inspect the variable containing the API endpoint.
+Pairing it with the substring function helps to limt the information displayed
+and understand the data we are going to work with without loading hundreds of 
+rows of data into the console. 
+
+```{r}
+
+cat(substr(CityEmissions2015,1,300))
+
+```
+Upon inspection of the extracted data, we see that it needs more work to perform 
+analysis on it. API endpoints use JSON format because of its versatility in 
+different languages. In R, the jsonlite package parses the data into a table
+like structure and enable the necessary manipulation to produce insights from 
+the dataset.
+
+```{r}
+library(jsonlite)
+CityEmissions2015 <- fromJSON(CityEmissions2015)
+head(CityEmissions2015)
+```
+We repeat the process for the other datasets
+
+```{r}
+#2016 Data
+CityEmissions2016 <- GET(url = "https://data.cdp.net/resource/dfed-thx7.json")
+CityEmissions2016 <- content(CityEmissions2016, as = "text")
+CityEmissions2016 <- fromJSON(CityEmissions2016)
+head(CityEmissions2016)
+
+#2017 Data
+CityEmissions2017 <- GET(url = "https://data.cdp.net/resource/kyi6-dk5h.json")
+CityEmissions2017 <- content(CityEmissions2017, as = "text")
+CityEmissions2017 <- fromJSON(CityEmissions2017)
+head(CityEmissions2017)
+
+
+#2018 Data
+CityEmissions2018 <- GET(url = "https://data.cdp.net/resource/wii4-buw5.json")
+CityEmissions2018 <- content(CityEmissions2018, as = "text")
+CityEmissions2018 <- fromJSON(CityEmissions2018)
+head(CityEmissions2018)
+
+#2019 Data
+CityEmissions2019 <- GET(url = "https://data.cdp.net/resource/542d-zyj8.json")
+CityEmissions2019 <- content(CityEmissions2019, as = "text")
+CityEmissions2019 <- fromJSON(CityEmissions2019)
+head(CityEmissions2019)
+
+```
+The dplyr package will be used to combine these datasets, specifically, the 
+select() and bind_rows() function. However, it's necessary for columns to  be 
+appended to have the same names and data types. To verify the structure of each
+dataframe, the summary function will be used. 
+
+```{r}
+summary(CityEmissions2015)
+```
+Alternatively, since we will be using the dplyr library to combine these
+datasets, the  glimpse function is a useful tool to inspect the table's
+structure
+```{r warnings = FALSE}
+#Install the dplyr library
+library(dplyr)
+```
+
+```{r}
+#implement glimpse for each dataset
+
+glimpse(CityEmissions2015)
+glimpse(CityEmissions2016)
+glimpse(CityEmissions2017)
+glimpse(CityEmissions2018)
+glimpse(CityEmissions2019)
+
+```
+Using the glimpse() function from the dplyr library, we can confirm that we can
+combine the column country as they have the same name and datatype. However,
+some of the column names are different and manipulation is necessary before any
+more changes can be applied (e.g city/city_name)
+
+The columns that contains the value we're measuring are also under
+different column names as shown in the table below
+
+| Year	     | ColumnName 				                         | DataType |
+|------------|---------------------------------------------|----------|
+| 2015       |total_city_wide_emissions_metric_tonnes_co2e |   <chr>  |
+| 2016       |total_city_wide_emissions_metric_tonnes_co2e |   <chr>  |
+| 2017       |total_emissions_metric_tonnes_co2e           |   <chr>  |
+| 2018       |total_scope_1_emissions_metric_tonnes_co2e   |   <chr>  |         
+| 2019       |total_scope_1_emissions_metric_tonnes_co2e   |   <chr>  |
+
+The year reported are also under different column_names
+
+| Year	     | ColumnName 				    | DataType |
+|------------|------------------------|----------|
+| 2015       | reporting_year         |   <chr>  |
+| 2016       | reporting_year         |   <chr>  |
+| 2017       | reporting_year         |   <chr>  |
+| 2018       | year_reported_to_cdp   |   <chr>  |         
+| 2019       | year_reported_to_cdp   |   <chr>  |
+
+Before combining the tables, the column names in each of the dataset have to be
+changed to be the same and set to the appropriate datatype. For this task, the 
+rename() function in the dplyr package and the pipe operator (%>%) 
+will be implemented
+
+
+```{r}
+CityEmissions2015 <- CityEmissions2015 %>% 
+  rename(total_emissions = total_city_wide_emissions_metric_tonnes_co2e,
+  year = reporting_year)
+colnames(CityEmissions2015)
+
+CityEmissions2016 <- CityEmissions2016 %>% 
+  rename(total_emissions = total_city_wide_emissions_metric_tonnes_co2e,
+  year = reporting_year)
+colnames(CityEmissions2016)
+
+CityEmissions2017 <- CityEmissions2017 %>% 
+  rename(total_emissions = total_emissions_metric_tonnes_co2e,
+  year = reporting_year,
+  city_name = city)
+colnames(CityEmissions2017)
+
+CityEmissions2018 <- CityEmissions2018 %>% 
+  rename(total_emissions = total_scope_1_emissions_metric_tonnes_co2e,
+  year = year_reported_to_cdp,
+  city_name = city)
+colnames(CityEmissions2018)
+
+CityEmissions2019 <- CityEmissions2019 %>% 
+  rename(total_emissions = total_scope_1_emissions_metric_tonnes_co2e,
+  year = year_reported_to_cdp,
+  city_name = city)
+colnames(CityEmissions2019)
+```
+
+### What does the final data set look like?
+
+Once the column names are standardized, the next step is to combine the columns
+needed from all the datasets
+
+```{r}
+CityEmissions2015 <- select(CityEmissions2015,city_name,country,year,
+                            total_emissions)
+head(CityEmissions2015)
+
+CityEmissions2016 <- select(CityEmissions2016,city_name,country,year,
+                            total_emissions)
+head(CityEmissions2016)
+
+CityEmissions2017 <- select(CityEmissions2017,city_name,country,year,
+                            total_emissions)
+head(CityEmissions2017)
+
+CityEmissions2018 <- select(CityEmissions2018,city_name,country,year,
+                            total_emissions)
+head(CityEmissions2018)
+
+CityEmissions2019 <- select(CityEmissions2019,city_name,country,year,
+                            total_emissions)
+head(CityEmissions2019)
+
+```
+Once the columns for each dataset are identified and cleaned, the columns used
+for analysis are combined into a new table
+
+```{r}
+emissions_table <- bind_rows(CityEmissions2015,CityEmissions2016,
+                                CityEmissions2017,CityEmissions2018,
+                                CityEmissions2019)
+head(emissions_table)
+```
+Finally, its likely that thee same countries may be listed as different names. 
+The country names will then need to be consolidated to help us analyze the 
+emissions more efficiently
+
+```{r}
+library (dplyr)
+sort_country <- emissions_table[order(emissions_table$country), ]
+sort_country
+distinct_country <- unique(sort_country$country)
+distinct_country
+emissions_table <- emissions_table %>%
+  mutate(country = ifelse(country == "United States of America", "USA", country))
+emissions_table <- emissions_table %>%
+  mutate(country = ifelse(country == "Taiwan, Greater China", "Taiwan", country))
+emissions_table <- emissions_table %>%
+  mutate(country = ifelse(country == 
+    "United Kingdom of Great Britain and Northern Ireland", "United Kingdom", 
+      country))
+emissions_table <- emissions_table %>%
+  mutate(country = ifelse(country == 
+                            "China, Hong Kong Special Administrative Region", 
+                              "Hong Kong", country))
+
+```
+
+
+
+### Questions for future steps.
+
+What information is not self-evident?
+Even though the dataset is cleaned and processed, we still need to analyze how
+the emissions have changed over a period of time. This will require changing the
+year value from character <chr> to date and change the datatype of
+total_emissions from character <chr> to numeric using the as.numeric value. We 
+also see that USA is also listed as United States of America which we will
+need to convert to USA. 
+
+```{r}
+emissions_table
+emissions_table <-na.omit(emissions_table)
+emissions_table$year <- as.numeric(emissions_table$year)
+emissions_table$total_emissions<-as.numeric(emissions_table$total_emissions)
+```
+
+What are different ways you could look at this data?
+
+My goal for this dataset is to create a trend using graphs to track the total
+emissions from different cities and compare the rate of energy mix affect
+the increase/decrease of emissions for each city. This will generate insights
+to determine if closing the gap in using alternative energy sources help reduce 
+the amount of emissions that each city generates
+
+How do you plan to slice and dice the data?
+The main goal is to see how much emissions are generated and any trends
+or patterns based on timelines. It would be interesting if its compared
+by city or country. Another option is to add the column population for each 
+dataset to show if a growing population is a considerable variable in the 
+increase/decrease of emissions.
+
+How could you summarize your data to answer key questions?
+
+Using the summary function in r will give an overview of the data. 
+Additionally, visuals communicate insights within a dataset that 
+may not be intuitive coming from the summary provided
+
+```{r}
+colnames(emissions_table)
+```
+
+Do you plan on incorporating any machine learning techniques to 
+answer your research questions? Explain.
+
+One of my goals for this project is to predict the rate of emissions by 
+city/country in to the future. I plan on dividing the dataset between 
+a training data and a testing data which is a key factor in machine learning
+to determine values for the predicted outcome. 
+
+## Part Three
+
+### Introduction
+
+At the time of writing, news spread of the widespread destruction of the 
+wildfires in Maui, Hawaii. This, along with many other extreme conditions
+that the world is experiencing lately can be attributed to the increasing amount
+of emissions produced by coal, oil, gas and other non-renewable energy resources
+adamant in society. As these problems continue, many cities and countries are
+pledging to take immediate action to improve sustainability. This project aims 
+to see if we, as a society, are doing enough to close the gap in the effort
+to save the planet by reducing greenhouse emissions. 
+
+### The problem statement you addressed.
+
+The first step to solving any problem is to define the issues that we want to
+solve. At the beginning of this research, my goal is to evaluate the work that
+countries are putting into reducing emissions. The following visualizations
+shows the amount of emissions produced by reporting countries from the CDP in
+different viewpoints to help understand the accumulation of greenhouse emissions
+by year, country, & city
+
+```{r}
+library(ggplot2)
+ ggplot(emissions_table, aes(x = city_name, y = total_emissions, 
+                             color = country)) +geom_point() +
+  labs(x = "City", y = "Emissions by Metric Tonne", 
+       title = "Total Emissions by City and Country") +guides(color = "none")
+```
+
+In this heatmap, we can see that the US has the highest contributions of 
+greenhouse emissions, year over year
+
+```{r}
+library(dplyr)
+library(tidyr)
+library(reshape2)
+
+country_emissions <- aggregate(total_emissions ~ country, emissions_table, sum)
+top_countries <- head(country_emissions[order(country_emissions$total_emissions, 
+                                          decreasing = TRUE), ], )$country
+
+# Filter data for top countries
+data_filtered <- emissions_table[emissions_table$country %in% top_countries, ]
+
+# Pivot data for the heatmap
+heatmap_data <- dcast(data_filtered, country ~ year, 
+                      value.var = "total_emissions")
+
+# Create the heatmap
+ggplot(melt(heatmap_data), aes(x = country, y = variable, fill = value)) +
+  geom_tile() +
+  labs(x = "Country", y = "Year", title = "Total Sales Heatmap by Country and Year") +
+  scale_fill_gradient(low = "white", high = "blue")  # Custom color scale
+```
+
+The Bar chart shows the total amount of emissions reported to the CDP. We see
+a sharp decline in emissions from 2018 to 2019.
+
+```{r}
+library(ggplot2)
+ggplot(emissions_table, aes(x = year, y = total_emissions, fill = factor(year))) +
+  geom_bar(stat = "identity") +
+  labs(x = "Year", y = "Emmissions by Metric Tonne", 
+       title = "Total Emmissions by Year") +
+  scale_fill_discrete(name = "Year")
+
+```
+
+
+
+### How you addressed this problem statement
+
+To illustrate the trend of how the greenhouse emissions will continue to rise in
+the future, I used a linear regression model to predict how much emissions the
+globe is expected to rise in the next few years. I simplified the data set by 
+aggregating the amount of emissions reported by participating cities in a year.
+
+Perform linear regression to predict emissions for 2020-2023
+
+```{r}
+emissions_table2 <-emissions_table %>%
+  group_by(year) %>%
+  summarise(total_emissions = sum(total_emissions))
+emissions_table2
+```
+
+Using the data from the newly developed dataset, we used the lm() function of 
+a linear regression model and produce an observation of how much emissions the 
+globe will continue to produce if we continue in the way we are going
+
+```{r}
+fit <- lm(total_emissions~year, data=emissions_table2)
+summary(fit)
+```
+By using the coefficients from our model, the prediction we are trying to make
+is fitted specifically to the data we already have. This will help provide more
+accuracy in our observations
+```{r}
+# hardcode the coefficients from the linear regression model
+intercept <- 3.153
+slope <- 1.557
+
+
+prediction_years <- seq(max(emissions_table2$year) + 1, 
+                        max(emissions_table2$year) + 5)
+
+# Predict total emissions for the next 5 years
+predicted_emissions <- intercept + slope * prediction_years
+
+# Create a data frame for the predictions
+predicted_output <- data.frame(year = prediction_years, 
+                          total_emissions = predicted_emissions)
+predicted_output
+
+#create plot for predictions
+
+ ggplot(predicted_output, aes(x = factor(year), y = total_emissions, fill = factor(year))) +
+  geom_bar(stat = "identity") +
+  labs(x = "Year", y = "Total Emissions", 
+       title = "Predicted Total Emissions") +
+  scale_fill_manual(values = c("2020" = "purple","2021"="black",
+    "2022" = "red", "2023" = "orange", 
+                               "2024" = "yellow", "2025" = "green", 
+                               "2026" = "blue"))
+
+```
+
+
+The output of our prediction models indicate small variance in the change of 
+total emissions by year. We can then use another option available to predict 
+how the emissions will change in the future. Machine learning algorithms allows
+the data available to be split into training & testing data to create a 
+predictive model.
+
+```{r message=FALSE,warning=FALSE}
+library(caret) 
+set.seed(123)
+#split the data 80/20
+part_index <- createDataPartition(emissions_table$total_emissions,
+                                  p=.8, list = FALSE)
+training_data <-emissions_table[part_index, ]
+testing_data <-emissions_table[part_index, ]
+
+training_model <- lm(total_emissions ~ city_name + country + year,
+                     data=training_data)
+
+#evaluate the training_model
+
+ML_predictions <-predict(training_model, newdata = testing_data)
+summary(ML_predictions)
+
+#Use the Mean Absolute Error to measure the average of all absolute errors
+
+MnAbsEr <- mean(abs(ML_predictions - testing_data$total_emissions))
+MnAbsEr
+
+#Use the Root Mean Squared Error to measure the extent of error between actual &
+#predicted values
+RtMnsqEr <- sqrt(mean(ML_predictions - testing_data$total_emissions)^2)
+RtMnsqEr
+```
+
+The mean value of MnAbsEr = 1179880 indicates one of two things, the prediction
+is not accurate because of the high value of the output, or it could also 
+indicate a large variance between the actual values, therefore the mean absolute
+error also shows an increased difference. To confirm which of the two 
+assumptions are accurate, we use the Root Mean Squared Error to determine the
+range of error between the values. In our model the MnAbsEr = 2.17
+shows a very small distance between each data points of actual &
+predicted, which could confirm why the output of our linear regression also
+vary little from one year to the other.
+
+
+### Implications
+
+The outcome of the study shows very little change in the predicted outcomes if
+society continue to consume non-renewable energy sources and emit emissions the
+way we do, According to the World Economic Forum, the cost of alleviating the
+effects of climate change is a $26 trillion burden on the world's economy. In 
+the visuals displaying the amount of emissions by year, it showed a significant
+drop in the totals in 2019. In spite of that, the prediction from the study 
+indicates that we will continue to produce emissions at a rate that could
+cause further harm to not only the environment, but also the people and the 
+economy. 
+
+### Limitations
+
+The data used in this study, while sourced from actual values reported by 
+participating cities, are dependent on organizations that choose to participate.
+What's important to note, is that these cities choose not only to report their
+emissions but they have also dedicated to implementing initiatives to help curb
+climate change.According to the dataset, the number of cities reporting have 
+increased annually with 814 cities reporting in 2019. However, according to 
+the CENSUS, there are795 cities with a population of over 50 thousand in the 
+U.S. alone. Since this dataset tracks global metrics - the number of 
+cities reporting should continue to increase to make significant impact in
+reducing emissions all over the world. 
+
+```{r}
+distinct_cities2015 <-nrow(CityEmissions2015)
+distinct_cities2016 <-nrow(CityEmissions2016)
+distinct_cities2017 <-nrow(CityEmissions2017)
+distinct_cities2018 <-nrow(CityEmissions2018)
+distinct_cities2019 <-nrow(CityEmissions2019)
+
+city_count <- c(distinct_cities2015,distinct_cities2016,distinct_cities2017,
+                distinct_cities2018,distinct_cities2019)
+reporting_year <- c("2015","2016","2017","2018","2019")
+
+barplot(city_count, names.arg = reporting_year, 
+        xlab = "Year",
+        ylab = "Number of Cities", main = "Number of Cities Reporting per Year")
+
+reporting_table <- data.frame(year = reporting_year,numcity = city_count)
+reporting_table
+
+```
+
+
+
+
+### Concluding Remarks
+
+The ongoing increase of global emissions has a lasting impact on the planet.
+The path to protecting the environment begins with understanding the current
+situation and the implication of continuing the actions that we are in now. As
+technologies continue to improve and more renewable resources become efficient,
+there is a glimmer of hope in the future. Now, more than ever, we should all
+be advocates for doing better to protect our environment. 
